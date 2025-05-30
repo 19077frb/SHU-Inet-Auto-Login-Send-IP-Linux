@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 配置文件
+config.py
+
+# 其他
+.DS_Store
+.env
+.venv
+env/
+venv/
+ENV/

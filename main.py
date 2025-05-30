@@ -1,24 +1,32 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import subprocess
+import platform
 import re
+import smtplib
+import subprocess
+import time
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
+# 导入配置
+from config import *
 
 # 登录校园网
 def login_campus_network():
     driver = None
-    max_attempts = 5  # 最大尝试次数
+    max_attempts = 5
     attempts = 0
-
     while attempts < max_attempts:
         try:
-            driver = webdriver.Chrome()
-            driver.get('http://10.10.9.9/')
+            chrome_options = Options()
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument("--headless")
+            driver = webdriver.Chrome(options=chrome_options)
+            driver.get(LOGIN_URL)
 
             # 检查是否已经登录
             try:
@@ -35,24 +43,19 @@ def login_campus_network():
                 username_input = WebDriverWait(driver, 10).until(
                     EC.visibility_of_element_located((By.ID, 'username'))
                 )
-                username_input.send_keys('xxxxxxxx')
-
+                username_input.send_keys(CAMPUS_USERNAME)
                 pwd_tip = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.ID, 'pwd_tip'))
                 )
                 pwd_tip.click()
-
                 password_input = WebDriverWait(driver, 10).until(
                     EC.visibility_of_element_located((By.ID, 'pwd'))
                 )
-                password_input.send_keys('xxxxxxxx')
-
+                password_input.send_keys(CAMPUS_PASSWORD)
                 login_button = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.ID, 'loginLink_div'))
                 )
                 login_button.click()
-
-                # 确保页面登录完成
                 time.sleep(5)
                 print("校园网登录成功")
                 return
@@ -70,35 +73,43 @@ def login_campus_network():
             if driver:
                 driver.quit()
 
-        time.sleep(5)  # 等待一段时间后再尝试
+        time.sleep(5)
 
     print("达到最大尝试次数，登录失败。")
 
 # 获取本地网络接口的IP地址
 def get_internal_ip():
     try:
-        result = subprocess.run(['ipconfig'], stdout=subprocess.PIPE)
-        output = result.stdout.decode('gbk')
-        ip_match = re.findall(r'IPv4 地址[^\d]*(\d+\.\d+\.\d+\.\d+)', output)
-        internal_ips = [ip for ip in ip_match if not ip.startswith('127.')]
+        system = platform.system().lower()
+        if system == 'windows':
+            result = subprocess.run(['ipconfig'], stdout=subprocess.PIPE, text=True, encoding='gbk')
+            output = result.stdout
+            # 在Windows下查找IPv4地址
+            ip_matches = re.findall(r'IPv4.*?(\d+\.\d+\.\d+\.\d+)', output)
+            internal_ips = [ip for ip in ip_matches if not ip.startswith('127.')]
+        else:  # Linux系统
+            result = subprocess.run(['ip', 'addr', 'show'], stdout=subprocess.PIPE, text=True)
+            output = result.stdout
+            # 在Linux下查找IPv4地址
+            ip_matches = re.findall(r'inet (\d+\.\d+\.\d+\.\d+)/', output)
+            internal_ips = [ip for ip in ip_matches if not ip.startswith('127.')]
+
         return internal_ips[0] if internal_ips else "未找到有效的内网IP"
     except Exception as e:
         return f"获取内网IP时出错: {e}"
 
 # 发送邮件的设置
 def send_email(subject, body, to_email):
-    from_email = 'xxxxxxxx@xxxxxxxx.com'
-    from_password = 'xxxxxxxx'
     msg = MIMEMultipart()
-    msg['From'] = from_email
+    msg['From'] = EMAIL_SENDER
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
     try:
-        server = smtplib.SMTP_SSL('xxxxxxxx', xxxxxxxx)
-        server.login(from_email, from_password)
-        server.sendmail(from_email, to_email, msg.as_string())
+        server = smtplib.SMTP_SSL(EMAIL_SMTP_SERVER, EMAIL_SMTP_PORT)
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_SENDER, to_email, msg.as_string())
         print("邮件发送成功")
         server.quit()
     except smtplib.SMTPException as e:
@@ -119,4 +130,4 @@ subject = "当前校园网 IP 地址"
 body = f"当前的内网 IP 地址是: {internal_ip}"
 
 # 发送邮件
-send_email(subject, body, 'xxxxxxxx@xxxxxxxx')
+send_email(subject, body, EMAIL_RECEIVER)
