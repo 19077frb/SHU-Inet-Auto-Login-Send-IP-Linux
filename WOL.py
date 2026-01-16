@@ -1,7 +1,4 @@
-import sys
 from wakeonlan import send_magic_packet
-import socket
-import struct
 
 def get_broadcast_address(ip, subnet_mask):
     ip_parts = list(map(int, ip.split('.')))

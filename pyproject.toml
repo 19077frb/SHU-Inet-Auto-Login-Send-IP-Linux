@@ -1,0 +1,10 @@
+[project]
+name = "shu-inet-auto-login-send-ip-linux"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "selenium>=4.39.0",
+    "wakeonlan>=3.1.0",
+]
