@@ -3,6 +3,7 @@ import re
 import smtplib
 import subprocess
 import time
+import random
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from selenium import webdriver
@@ -34,7 +35,7 @@ def login_campus_network():
                     EC.presence_of_element_located((By.ID, 'toLogOut'))
                 )
                 print("已经登录校园网，跳过登录步骤。")
-                return
+                return 2
             except Exception:
                 print("未检测到登录状态，继续执行登录。")
 
@@ -58,7 +59,7 @@ def login_campus_network():
                 login_button.click()
                 time.sleep(5)
                 print("校园网登录成功")
-                return
+                return 1
             except Exception as e:
                 print(f"登录过程中发生错误: {e}")
                 attempts += 1
@@ -119,15 +120,16 @@ def send_email(subject, body, to_email):
 
 # 执行校园网登录
 print("尝试登录校园网...")
-login_campus_network()
+status = login_campus_network()
+if status == 1 or (status == 2 and random.randint(1, 10) <= 2):
 
-# 获取内网IP地址
-internal_ip = get_internal_ip()
-print(f"内网IP: {internal_ip}")
+    # 获取内网IP地址
+    internal_ip = get_internal_ip()
+    print(f"内网IP: {internal_ip}")
 
-# 准备邮件内容
-subject = "当前校园网 IP 地址"
-body = f"当前的内网 IP 地址是: {internal_ip}"
+    # 准备邮件内容
+    subject = "当前校园网 IP 地址"
+    body = f"当前的内网 IP 地址是: {internal_ip}"
 
-# 发送邮件
-send_email(subject, body, EMAIL_RECEIVER)
+    # 发送邮件
+    send_email(subject, body, EMAIL_RECEIVER)
